@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: subflow-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:subflow}
+    username: ${DB_USERNAME:subflow}
+    password: ${DB_PASSWORD:subflow}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: subflow-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 스키마의 단일 출처는 Flyway 마이그레이션이다. 엔티티와 어긋나면 기동 시 실패한다.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: true
+        default_batch_fetch_size: 100
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+subflow:
+  version: 0.1.0-SNAPSHOT
+  dunning:
+    max-retries: 3
+    retry-interval: 24h
+  outbox:
+    batch-size: 100
+    max-retries: 5
+    retry-backoff: 30s
+  lock:
+    key-prefix: "subflow:lock:"
+    lease-time: 5s
+    wait-time: 3s
+  webhook:
+    timestamp-tolerance: 5m
+
+logging:
+  level:
+    com.subflow: INFO
+    org.hibernate.SQL: WARN
