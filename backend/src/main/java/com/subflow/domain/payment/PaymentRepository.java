@@ -2,6 +2,7 @@ package com.subflow.domain.payment;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findBySubscriptionIdOrderByIdDesc(Long subscriptionId);
 
     List<Payment> findBySubscriptionIdAndStatus(Long subscriptionId, PaymentStatus status);
+
+    /** PG 거래 ID 로 원장을 찾는다(웹훅 환불·정합성 대사). */
+    Optional<Payment> findByPgTxId(String pgTxId);
+
+    List<Payment> findByStatusInOrderByIdAsc(Collection<PaymentStatus> statuses);
+
+    List<Payment> findByStatusAndPaidAtBetween(PaymentStatus status, Instant from, Instant to);
 
     /** 정합성 점검: 특정 시각 구간에 성공한 결제 합계. */
     @Query("""

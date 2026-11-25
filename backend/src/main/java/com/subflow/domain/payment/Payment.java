@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,10 @@ public class Payment extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** 외부(API·감사 로그)에 노출하는 식별자. */
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "subscription_id", nullable = false)
@@ -105,6 +110,28 @@ public class Payment extends BaseTimeEntity {
         this.status = PaymentStatus.FAILED;
         this.failureCode = failureCode;
         this.failureReason = failureReason;
+    }
+
+    /**
+     * PG 응답을 확정하지 못한 상태(타임아웃 등)를 기록한다.
+     *
+     * <p>상태는 PENDING 으로 남긴다. 승인됐는지 알 수 없으므로 실패로 단정하지 않고,
+     * 정합성 점검({@code ReconciliationService})이 PG 실제 상태와 대사해 확정한다.
+     */
+    public void markUncertain(String failureCode, String failureReason, String pgTxId) {
+        if (status != PaymentStatus.PENDING) {
+            throw InvalidStateTransitionException.of("결제", status, PaymentStatus.PENDING);
+        }
+        this.failureCode = failureCode;
+        this.failureReason = failureReason;
+        if (pgTxId != null && !pgTxId.isBlank()) {
+            this.pgTxId = pgTxId;
+        }
+    }
+
+    /** PG 응답 미확정(타임아웃) 상태인지 — 정합성 점검 대상. */
+    public boolean isUncertain() {
+        return status == PaymentStatus.PENDING && failureCode != null;
     }
 
     public void markCanceled(String reason) {

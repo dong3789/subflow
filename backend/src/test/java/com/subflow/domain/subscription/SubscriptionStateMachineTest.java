@@ -133,7 +133,7 @@ class SubscriptionStateMachineTest {
                             SubscriptionStatus.EXPIRED),
                     SubscriptionStatus.PAUSED, EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED,
                             SubscriptionStatus.EXPIRED),
-                    SubscriptionStatus.CANCELED, EnumSet.of(SubscriptionStatus.EXPIRED),
+                    SubscriptionStatus.CANCELED, EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRED),
                     SubscriptionStatus.EXPIRED, EnumSet.noneOf(SubscriptionStatus.class)
             );
 
@@ -144,6 +144,22 @@ class SubscriptionStateMachineTest {
                             .isEqualTo(expected.get(from).contains(to));
                 }
             }
+        }
+
+        @Test
+        @DisplayName("해지된 구독은 관리자 복구로 ACTIVE가 될 수 있고, 만료는 어떤 상태로도 갈 수 없다")
+        void canceledCanBeRestoredButExpiredCannot() {
+            Subscription canceled = activeSubscription();
+            canceled.cancelNow(T0.plus(1, DAYS));
+            canceled.restore(T0.plus(2, DAYS));
+
+            assertThat(canceled.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+            assertThat(canceled.getNextBillingAt()).isEqualTo(Instant.parse("2026-12-25T00:00:00Z"));
+
+            Subscription expired = activeSubscription();
+            expired.expire();
+            assertThatThrownBy(() -> expired.restore(T0))
+                    .isInstanceOf(InvalidStateTransitionException.class);
         }
 
         @Test
@@ -189,7 +205,7 @@ class SubscriptionStateMachineTest {
         }
 
         @Test
-        @DisplayName("일시정지 후 재개하면 재개 시점부터 새 주기를 센다")
+        @DisplayName("일시정지 후 재개하면 재개 시점부터 새 주기를 세되 결제 기준일은 유지한다")
         void resumeStartsNewPeriodFromNow() {
             Subscription sub = activeSubscription();
             sub.pause();
@@ -199,7 +215,9 @@ class SubscriptionStateMachineTest {
 
             assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
             assertThat(sub.getCurrentPeriodStart()).isEqualTo(resumedAt);
-            assertThat(sub.getCurrentPeriodEnd()).isEqualTo(Instant.parse("2027-01-05T00:00:00Z"));
+            assertThat(sub.getAnchorDay()).as("가입일(25일)이 결제 기준일로 유지된다").isEqualTo(25);
+            assertThat(sub.getCurrentPeriodEnd()).as("같은 달의 기준일로 맞춰진다")
+                    .isEqualTo(Instant.parse("2026-12-25T00:00:00Z"));
             assertThat(sub.getNextBillingAt()).isEqualTo(sub.getCurrentPeriodEnd());
         }
     }

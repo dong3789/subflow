@@ -14,6 +14,8 @@ import java.util.Set;
  *   │         ├──▶ PAUSED ──▶ ACTIVE
  *   │         └──▶ CANCELED ──▶ EXPIRED (기간 종료)
  *   └──▶ CANCELED / EXPIRED
+ *
+ * CANCELED ──▶ ACTIVE  (관리자 복구: 지금부터 새 이용 기간을 연다)
  * </pre>
  *
  * <p>전이 규칙은 이 enum이 단일 출처(single source of truth)다. 서비스 계층은 상태를 직접 대입하지 않고
@@ -70,7 +72,7 @@ public enum SubscriptionStatus {
             case ACTIVE -> EnumSet.of(PAST_DUE, PAUSED, CANCELED, EXPIRED);
             case PAST_DUE -> EnumSet.of(ACTIVE, CANCELED, EXPIRED);
             case PAUSED -> EnumSet.of(ACTIVE, CANCELED, EXPIRED);
-            case CANCELED -> EnumSet.of(EXPIRED);
+            case CANCELED -> EnumSet.of(ACTIVE, EXPIRED);
             case EXPIRED -> Collections.unmodifiableSet(EnumSet.noneOf(SubscriptionStatus.class));
         };
     }

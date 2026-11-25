@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -18,6 +19,10 @@ class HealthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    /** API Key 필터가 슬라이스에 함께 로드되므로 프로젝트 조회는 목으로 대체한다. */
+    @MockitoBean
+    private com.subflow.service.ProjectService projectService;
 
     @Test
     @DisplayName("GET /api/v1/health는 UP 상태와 서비스 정보를 돌려준다")

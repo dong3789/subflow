@@ -5,8 +5,8 @@ plugins {
 }
 
 group = "com.subflow"
-version = "0.1.0-SNAPSHOT"
-description = "SubFlow - 구독·정기결제 플랫폼 백엔드 (1단계 스캐폴드)"
+version = "0.2.0-SNAPSHOT"
+description = "SubFlow - 구독·정기결제 플랫폼 백엔드 (2단계 결제 코어 엔진)"
 
 java {
     toolchain {
@@ -35,9 +35,11 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
-    // Redis / 분산 락 (2단계에서 Redisson 락·멱등키에 사용)
+    // Redis / 분산 락
+    //  - starter 대신 코어 클라이언트를 쓴다. RedissonClient 빈은 Redis 를 실제로 쓰는 구성에서만 만든다
+    //    (테스트/로컬에서 Redis 없이 인메모리 락 구현으로 대체 가능).
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    implementation("org.redisson:redisson-spring-boot-starter:3.45.1")
+    implementation("org.redisson:redisson:3.45.1")
 
     // 운영
     implementation("org.springframework.boot:spring-boot-starter-actuator")

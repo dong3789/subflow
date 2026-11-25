@@ -12,6 +12,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
+    /**
+     * 단건 조회는 응답 변환에서 플랜·고객을 바로 쓰므로 함께 가져온다
+     * (open-in-view=false 환경에서 지연 로딩 예외를 막는다).
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(
+            attributePaths = {"plan", "customer", "billingKey", "project"})
+    Optional<Subscription> findById(Long id);
+
+    @org.springframework.data.jpa.repository.EntityGraph(
+            attributePaths = {"plan", "customer", "billingKey", "project"})
     List<Subscription> findByCustomerId(Long customerId);
 
     List<Subscription> findByCustomerIdAndStatus(Long customerId, SubscriptionStatus status);
@@ -37,8 +47,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             """)
     List<Subscription> findDueSubscriptions(@Param("now") Instant now, Pageable pageable);
 
-    /** 해지 예약 후 기간이 끝난 구독 (해지 확정 배치). */
-    @Query("""
+    /** 해지 예약 후 기간이 끝난 구독 (해지 확정 배치). */    @Query("""
             select s from Subscription s
             where s.cancelAtPeriodEnd = true
               and s.currentPeriodEnd <= :now
@@ -49,4 +58,15 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     List<Subscription> findExpiredByCancellation(@Param("now") Instant now);
 
     long countByStatus(SubscriptionStatus status);
+
+    /** 연체(PAST_DUE)라 Dunning 재시도 시각이 된 구독. */
+    @Query("""
+            select s from Subscription s
+            where s.status = com.subflow.domain.subscription.SubscriptionStatus.PAST_DUE
+              and s.cancelAtPeriodEnd = false
+              and s.nextBillingAt is not null
+              and s.nextBillingAt <= :now
+            order by s.nextBillingAt asc
+            """)
+    List<Subscription> findDuePastDue(@Param("now") Instant now, Pageable pageable);
 }

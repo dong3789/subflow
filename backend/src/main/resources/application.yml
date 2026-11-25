@@ -57,20 +57,38 @@ management:
         enabled: true
 
 subflow:
-  version: 0.1.0-SNAPSHOT
+  version: 0.2.0-SNAPSHOT
   dunning:
     max-retries: 3
     retry-interval: 24h
+  billing:
+    # 같은 구독에 이 간격 안에서 두 번 청구하지 않는다(당겨받기·배치 중복 결제 가드).
+    duplicate-guard-window: 24h
+    batch-size: 200
   outbox:
     batch-size: 100
     max-retries: 5
     retry-backoff: 30s
   lock:
+    # redis: Redisson 분산 락 / in-memory: 단일 인스턴스·테스트용
+    provider: ${LOCK_PROVIDER:redis}
     key-prefix: "subflow:lock:"
-    lease-time: 5s
+    lease-time: 10s
     wait-time: 3s
+  pg:
+    provider: mock
   webhook:
     timestamp-tolerance: 5m
+    transport: http
+  scheduler:
+    enabled: true
+    billing-interval: PT60S
+    dunning-interval: PT5M
+    outbox-interval: PT10S
+    cancellation-interval: PT5M
+  api-key:
+    required: false
+    header-name: X-Api-Key
 
 logging:
   level:

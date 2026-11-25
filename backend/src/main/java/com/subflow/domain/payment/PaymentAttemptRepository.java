@@ -11,4 +11,6 @@ public interface PaymentAttemptRepository extends JpaRepository<PaymentAttempt, 
     Optional<PaymentAttempt> findTopByPaymentIdOrderByAttemptNoDesc(Long paymentId);
 
     long countByPaymentIdAndStatus(Long paymentId, PaymentAttemptStatus status);
+
+    long countByPaymentId(Long paymentId);
 }

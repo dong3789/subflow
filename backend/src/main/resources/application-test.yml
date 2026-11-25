@@ -1,4 +1,4 @@
-# 테스트 프로파일: 외부 인프라 없이 도는 단위·슬라이스 테스트용.
+# 테스트 프로파일: 외부 인프라 없이 도는 단위·슬라이스·통합 테스트용.
 # PostgreSQL 전용 문법(JSONB, 부분 인덱스)은 Flyway를 끄고 Hibernate ddl-auto로 대체한다.
 spring:
   datasource:
@@ -29,16 +29,28 @@ subflow:
   dunning:
     max-retries: 3
     retry-interval: 1h
+  billing:
+    duplicate-guard-window: 24h
+    batch-size: 20
   outbox:
     batch-size: 20
     max-retries: 3
     retry-backoff: 1s
   lock:
+    provider: in-memory
     key-prefix: "subflow:test:lock:"
-    lease-time: 1s
-    wait-time: 1s
+    lease-time: 2s
+    wait-time: 2s
+  pg:
+    provider: mock
   webhook:
     timestamp-tolerance: 5m
+    transport: http
+  scheduler:
+    enabled: false
+  api-key:
+    required: false
+    header-name: X-Api-Key
 
 logging:
   level:
